@@ -33,7 +33,7 @@
 
 ## Install
 
-Download `IPTray-1.0.1-setup.exe` from the
+Download `IPTray-1.0.2-setup.exe` from the
 [latest release](https://github.com/memues/IPTray/releases/latest) and run it.
 
 The installer offers a per-user install (no administrator rights needed) or an all-users install.
@@ -43,6 +43,14 @@ tamper-resistance of a self-elevating app, prefer the all-users install — see
 
 To remove it, use **Settings → Apps → Installed apps → IPTray**, or *Programs and Features*.
 The uninstaller asks whether the settings and the IP history should be deleted too.
+
+> [!NOTE]
+> **Smart App Control blocks unsigned programs.** IPTray is not code-signed, so on a Windows 11
+> machine with Smart App Control switched on, the installer or the uninstaller may be refused with
+> "An Application Control policy has blocked this file". This has been observed against the
+> uninstaller in particular. If it happens, see
+> [SECURITY.md](SECURITY.md#unsigned-binaries-and-smart-app-control) for how to remove IPTray by
+> hand — it is four things in four places, nothing hidden.
 
 ## Where things are stored
 

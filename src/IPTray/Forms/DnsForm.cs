@@ -291,6 +291,25 @@ internal sealed class DnsForm : Form
             return (applied, detail);
         }).ConfigureAwait(true);
 
+        // The window can be closed while the UAC prompt is up; the change still completes, but
+        // there is no longer anything to report it to.
+        if (IsDisposed || Disposing)
+        {
+            return;
+        }
+
+        // Windows keeps handing out the previous resolver list for a moment after netsh returns,
+        // so let it settle before the "In use now" box is refreshed from it.
+        if (success)
+        {
+            await Task.Delay(700).ConfigureAwait(true);
+
+            if (IsDisposed || Disposing)
+            {
+                return;
+            }
+        }
+
         SetBusy(false);
         LoadAdapters();
 
@@ -331,6 +350,6 @@ internal sealed class DnsForm : Form
             single = single.Replace("  ", " ", StringComparison.Ordinal);
         }
 
-        return single.Length <= 160 ? single : single[..157] + "...";
+        return single.Length <= 140 ? single : single[..137] + "...";
     }
 }

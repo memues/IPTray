@@ -50,9 +50,31 @@ What does help is elevating as a *different* account — a standard user account
 separate administrator credentials. The elevated helper is then built from the administrator's
 environment, which an attacker confined to your account cannot write to.
 
+### Unsigned binaries and Smart App Control
+
 **The binaries are not code-signed.** SmartScreen will warn on first run, and the publisher shows as
 unknown in the UAC prompt. Verify the SHA-256 checksum published with each release before running the
 installer.
+
+On Windows 11 with **Smart App Control** enabled, unsigned programs with no reputation can be refused
+outright — "An Application Control policy has blocked this file". This was reproduced against the
+uninstaller (`unins000.exe`) while preparing 1.0.2; the installer itself ran, but Smart App Control
+makes its decisions per file, so either can be blocked. Nothing in the app can work around that,
+which is precisely the point of the feature.
+
+If the uninstaller is blocked, IPTray can be removed by hand. It puts things in exactly four places:
+
+1. The install directory — `%LOCALAPPDATA%\Programs\IPTray` for a per-user install, or
+   `%ProgramFiles%\IPTray` for an all-users one.
+2. The Programs and Features entry —
+   `HKCU\Software\Microsoft\Windows\CurrentVersion\Uninstall\{8F3C2A7E-5B1D-4E96-9C0A-2D7B4F61E3A8}_is1`
+   (under `HKLM` for an all-users install).
+3. The Start menu shortcut — `IPTray.lnk` under `Start Menu\Programs`.
+4. The sign-in entry — the `IPTray` value under
+   `HKCU\Software\Microsoft\Windows\CurrentVersion\Run`.
+
+Plus `%APPDATA%\IPTray` if you also want the settings, the flag cache and the IP history gone. There
+are no services, drivers, scheduled tasks or COM registrations to clean up.
 
 **The IP history is stored in the clear.** `%APPDATA%\IPTray\ip-log.csv` records every public IP your
 machine has had, with timestamps. Anyone with access to your user profile can read it. Use *Clear log*

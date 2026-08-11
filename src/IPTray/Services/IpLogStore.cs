@@ -137,13 +137,20 @@ internal static class IpLogStore
     /// </summary>
     private static readonly char[] FormulaLeaders = { '=', '+', '-', '@', '\t', '\r' };
 
+    /// <summary>
+    /// The apostrophe itself is escaped as well. Without that, a genuine value of <c>'=x</c> and
+    /// an escaped <c>=x</c> would both be stored as <c>'=x</c>, and the first would come back as
+    /// <c>=x</c>. Doubling it keeps the transform reversible.
+    /// </summary>
+    private static bool NeedsFormulaGuard(char c) => c == '\'' || Array.IndexOf(FormulaLeaders, c) >= 0;
+
     private static string Escape(string value)
     {
         value = value.Replace('\r', ' ').Replace('\n', ' ');
 
         // Neutralise formula injection: a leading apostrophe makes spreadsheets treat the rest
         // as literal text. Read() strips it again so the value round-trips unchanged.
-        if (value.Length > 0 && Array.IndexOf(FormulaLeaders, value[0]) >= 0)
+        if (value.Length > 0 && NeedsFormulaGuard(value[0]))
         {
             value = "'" + value;
         }
@@ -158,7 +165,7 @@ internal static class IpLogStore
 
     /// <summary>Undoes the apostrophe added by <see cref="Escape"/>.</summary>
     private static string Unescape(string value) =>
-        value.Length > 1 && value[0] == '\'' && Array.IndexOf(FormulaLeaders, value[1]) >= 0
+        value.Length > 1 && value[0] == '\'' && NeedsFormulaGuard(value[1])
             ? value[1..]
             : value;
 

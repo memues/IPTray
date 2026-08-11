@@ -1,8 +1,8 @@
-﻿; Inno Setup script for IPTray.
+; Inno Setup script for IPTray.
 ; Build with: iscc installer\IPTray.iss   (after "dotnet publish" into build\publish)
 
 #define AppName      "IPTray"
-#define AppVersion   "1.0.1"
+#define AppVersion   "1.0.2"
 #define AppPublisher "IPTray"
 #define AppUrl       "https://github.com/memues/IPTray"
 #define AppExe       "IPTray.exe"

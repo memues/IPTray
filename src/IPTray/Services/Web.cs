@@ -20,7 +20,14 @@ internal static class Web
             MaxAutomaticRedirections = 3,
         };
 
-        var client = new HttpClient(handler) { Timeout = TimeSpan.FromSeconds(12) };
+        var client = new HttpClient(handler)
+        {
+            Timeout = TimeSpan.FromSeconds(12),
+
+            // Nothing IPTray fetches is anywhere near this large. The cap stops a hostile or
+            // compromised endpoint from exhausting memory with an endless response body.
+            MaxResponseContentBufferSize = 2 * 1024 * 1024,
+        };
         client.DefaultRequestHeaders.UserAgent.ParseAdd("IPTray/1.0 (+https://github.com/memues/IPTray)");
         client.DefaultRequestHeaders.CacheControl = new CacheControlHeaderValue { NoCache = true };
         return client;

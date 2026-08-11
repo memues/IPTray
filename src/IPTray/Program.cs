@@ -11,10 +11,12 @@ internal static class Program
     {
         // Elevated helper mode. A second, UAC-elevated copy of this executable performs the
         // privileged DNS work for the user-level instance. This has to run before the
-        // single-instance guard, because the normal instance is still running.
-        if (args.Length >= 2 && string.Equals(args[0], ElevatedHost.Verb, StringComparison.OrdinalIgnoreCase))
+        // single-instance guard, because the normal instance is still running. Anything starting
+        // with the verb is handled there and never falls through to the tray icon, so a malformed
+        // invocation exits with a status code instead of quietly starting a second copy.
+        if (args.Length > 0 && string.Equals(args[0], ElevatedHost.Verb, StringComparison.Ordinal))
         {
-            return ElevatedHost.Run(args[1]);
+            return ElevatedHost.Run(args);
         }
 
         using var singleInstance = new Mutex(true, @"Local\IPTray.SingleInstance.v1", out bool isFirstInstance);

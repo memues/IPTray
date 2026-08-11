@@ -1,5 +1,3 @@
-using System.Net;
-using System.Net.Sockets;
 using IPTray.Services;
 
 namespace IPTray.Forms;
@@ -276,7 +274,8 @@ internal sealed class DnsForm : Form
 
         var request = new DnsRequest
         {
-            Adapter = adapter.Name,
+            AdapterId = adapter.Id,
+            AdapterName = adapter.Name,
             Primary = primary,
             Secondary = secondary,
             FlushCache = _flush.Checked,
@@ -318,9 +317,11 @@ internal sealed class DnsForm : Form
         UseWaitCursor = busy;
     }
 
-    private static bool IsIpv4(string value) =>
-        IPAddress.TryParse(value, out IPAddress? address) &&
-        address.AddressFamily == AddressFamily.InterNetwork;
+    /// <summary>
+    /// Deliberately the same check the elevated helper applies, so the window never accepts an
+    /// address that the privileged half would then reject.
+    /// </summary>
+    private static bool IsIpv4(string value) => ElevatedHost.IsIpv4(value);
 
     private static string Shorten(string message)
     {

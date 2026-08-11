@@ -33,11 +33,13 @@
 
 ## Install
 
-Download `IPTray-1.0.0-setup.exe` from the
+Download `IPTray-1.0.1-setup.exe` from the
 [latest release](https://github.com/memues/IPTray/releases/latest) and run it.
 
 The installer offers a per-user install (no administrator rights needed) or an all-users install.
-Nothing else is required: the .NET runtime is included in the package.
+Nothing else is required: the .NET runtime is included in the package. If you care about the
+tamper-resistance of a self-elevating app, prefer the all-users install — see
+[SECURITY.md](SECURITY.md).
 
 To remove it, use **Settings → Apps → Installed apps → IPTray**, or *Programs and Features*.
 The uninstaller asks whether the settings and the IP history should be deleted too.
@@ -69,6 +71,11 @@ IPTray itself runs without administrator rights. Applying a DNS change needs the
 launches one elevated copy of itself that runs the `netsh interface ipv4 set dnsservers` commands
 and reports the result back. You will see a single UAC prompt per change, and nothing happens if
 you decline it. Reading the current configuration never needs elevation.
+
+That elevated copy is the only place IPTray crosses a privilege boundary, so it is deliberately
+narrow: it takes its instructions from its command line rather than from a file, validates every
+argument itself, launches `netsh` by absolute path, and writes nothing to disk.
+[SECURITY.md](SECURITY.md) explains the reasoning and lists the residual risks.
 
 ## Building from source
 

@@ -33,7 +33,11 @@ internal static class FlagIconFactory
     /// </summary>
     public static async Task<Bitmap?> GetFlagAsync(string countryCode, CancellationToken cancellationToken)
     {
-        if (countryCode.Length != 2)
+        // The code reaches this method from a remote lookup response, and is used to build both a
+        // URL and a cache file name. Only two ASCII letters are ever legitimate.
+        if (countryCode.Length != 2 ||
+            !char.IsAsciiLetter(countryCode[0]) ||
+            !char.IsAsciiLetter(countryCode[1]))
         {
             return null;
         }

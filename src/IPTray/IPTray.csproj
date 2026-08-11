@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
@@ -22,9 +22,9 @@
     <Description>Tray monitor for your public IP address, country and DNS servers.</Description>
     <Company>IPTray</Company>
     <Copyright>Copyright (c) 2026 IPTray contributors</Copyright>
-    <Version>1.0.0</Version>
-    <FileVersion>1.0.0.0</FileVersion>
-    <AssemblyVersion>1.0.0.0</AssemblyVersion>
+    <Version>1.0.1</Version>
+    <FileVersion>1.0.1.0</FileVersion>
+    <AssemblyVersion>1.0.1.0</AssemblyVersion>
 
     <RuntimeIdentifier>win-x64</RuntimeIdentifier>
     <SelfContained>true</SelfContained>
@@ -33,6 +33,22 @@
     <PublishReadyToRun>false</PublishReadyToRun>
     <InvariantGlobalization>false</InvariantGlobalization>
     <DebugType>none</DebugType>
+
+    <!--
+      This executable relaunches itself elevated to apply DNS changes. DOTNET_STARTUP_HOOKS is
+      read from the environment, and on a split-token administrator account the elevated process
+      inherits the same per-user environment - which would let a process running as the user load
+      its own assembly into the elevated one. Turning the feature off makes the runtime ignore
+      the variable. See SECURITY.md.
+    -->
+    <StartupHookSupport>false</StartupHookSupport>
+
+    <!--
+      Windows Forms leaves BinaryFormatter enabled for legacy clipboard and drag-drop payloads.
+      IPTray only ever puts plain text on the clipboard, so the unsafe deserialiser is switched
+      off rather than left reachable.
+    -->
+    <EnableUnsafeBinaryFormatterSerialization>false</EnableUnsafeBinaryFormatterSerialization>
   </PropertyGroup>
 
   <ItemGroup>

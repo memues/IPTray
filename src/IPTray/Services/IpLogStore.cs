@@ -86,7 +86,12 @@ internal static class IpLogStore
                         continue;
                     }
 
-                    entries.Add(new LogEntry(timestamp, fields[1], fields[2], fields[3], fields[4]));
+                    entries.Add(new LogEntry(
+                        timestamp,
+                        Unescape(fields[1]),
+                        Unescape(fields[2]),
+                        Unescape(fields[3]),
+                        Unescape(fields[4])));
                 }
             }
             catch (Exception ex)
@@ -125,9 +130,23 @@ internal static class IpLogStore
         File.Move(AppPaths.LogFile, AppPaths.ArchivedLogFile, overwrite: true);
     }
 
+    /// <summary>
+    /// Characters that make Excel, LibreOffice and Google Sheets treat a cell as a formula.
+    /// The ISP and country strings come from a remote service, so they are untrusted input that
+    /// the user is invited to open in a spreadsheet.
+    /// </summary>
+    private static readonly char[] FormulaLeaders = { '=', '+', '-', '@', '\t', '\r' };
+
     private static string Escape(string value)
     {
         value = value.Replace('\r', ' ').Replace('\n', ' ');
+
+        // Neutralise formula injection: a leading apostrophe makes spreadsheets treat the rest
+        // as literal text. Read() strips it again so the value round-trips unchanged.
+        if (value.Length > 0 && Array.IndexOf(FormulaLeaders, value[0]) >= 0)
+        {
+            value = "'" + value;
+        }
 
         if (value.IndexOfAny(new[] { ',', '"' }) < 0)
         {
@@ -136,6 +155,12 @@ internal static class IpLogStore
 
         return '"' + value.Replace("\"", "\"\"") + '"';
     }
+
+    /// <summary>Undoes the apostrophe added by <see cref="Escape"/>.</summary>
+    private static string Unescape(string value) =>
+        value.Length > 1 && value[0] == '\'' && Array.IndexOf(FormulaLeaders, value[1]) >= 0
+            ? value[1..]
+            : value;
 
     private static string[] ParseCsvLine(string line)
     {

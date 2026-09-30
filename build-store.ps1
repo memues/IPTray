@@ -4,6 +4,7 @@ param(
     [Parameter(Mandatory = $true)][string]$Publisher,
     [Parameter(Mandatory = $true)][string]$PublisherDisplayName,
     [string]$DisplayName = 'IPTray Orbit',
+    [string]$PackageVersion,
     [string]$MakeAppxPath,
     [string]$OutputDirectory = (Join-Path $PSScriptRoot 'build/store')
 )
@@ -23,7 +24,15 @@ if (-not $MakeAppxPath -or -not (Test-Path -LiteralPath $MakeAppxPath)) {
 }
 [xml]$project = Get-Content -LiteralPath (Join-Path $PSScriptRoot 'src/IPTray/IPTray.csproj')
 $version = ($project.Project.PropertyGroup | Where-Object Version | Select-Object -First 1).Version
-$packageVersion = "$version.0"
+if (-not $PackageVersion) { $PackageVersion = "$version.0" }
+if ($PackageVersion -notmatch '^[1-9][0-9]*\.[0-9]+\.[0-9]+\.0$') {
+    throw 'Store package versions must have four numeric parts, a nonzero major version and a zero final part.'
+}
+$parsedPackageVersion = [version]::Parse($PackageVersion)
+if (@($parsedPackageVersion.Major, $parsedPackageVersion.Minor, $parsedPackageVersion.Build) |
+    Where-Object { $_ -gt 65535 }) {
+    throw 'Each Store package version part must be at most 65535.'
+}
 New-Item -ItemType Directory -Path $OutputDirectory -Force | Out-Null
 # A fresh directory prevents stale desktop helper files from entering a Store package.
 $staging = Join-Path (Join-Path $PSScriptRoot 'build/store-staging') ([guid]::NewGuid().ToString('N'))
@@ -60,7 +69,7 @@ try {
     }
 } finally { $source.Dispose() }
 
-$package = Join-Path $OutputDirectory "IPTray-$version-x64.msix"
+$package = Join-Path $OutputDirectory "IPTray-$PackageVersion-x64.msix"
 & $MakeAppxPath pack /d $staging /p $package /o
 if ($LASTEXITCODE -ne 0) { throw 'MSIX validation/packaging failed.' }
 Write-Output "Store package: $package"

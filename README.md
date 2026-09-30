@@ -127,7 +127,7 @@ For the Store package, install the Windows SDK (MakeAppx) and use the values in
 
 ```powershell
 $identity = Get-Content packaging/store-identity.json -Raw | ConvertFrom-Json
-.\build-store.ps1 -IdentityName $identity.IdentityName -Publisher $identity.Publisher -PublisherDisplayName $identity.PublisherDisplayName -DisplayName $identity.DisplayName
+.\build-store.ps1 -IdentityName $identity.IdentityName -Publisher $identity.Publisher -PublisherDisplayName $identity.PublisherDisplayName -DisplayName $identity.DisplayName -PackageVersion $identity.PackageVersion
 ```
 
 Pass `-MakeAppxPath` if the tool is installed outside the Windows SDK directory. The script

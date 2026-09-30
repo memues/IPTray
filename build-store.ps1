@@ -3,7 +3,7 @@ param(
     [Parameter(Mandatory = $true)][string]$IdentityName,
     [Parameter(Mandatory = $true)][string]$Publisher,
     [Parameter(Mandatory = $true)][string]$PublisherDisplayName,
-    [string]$DisplayName = 'IPTray by memues',
+    [string]$DisplayName = 'IPTray Orbit',
     [string]$MakeAppxPath,
     [string]$OutputDirectory = (Join-Path $PSScriptRoot 'build/store')
 )

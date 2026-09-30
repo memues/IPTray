@@ -52,8 +52,8 @@ is needed. The portable edition uses the same per-user data folder as the instal
 
 ## Microsoft Store edition
 
-The Microsoft Store product is named **IPTray by memues** because the shorter name was
-unavailable. Its Store ID is `9MSXJD9BWBD7`. Availability depends on Microsoft certification;
+The Microsoft Store product is named **IPTray Orbit**, published by **omni.apps**. Its
+Store ID is `9MSXJD9BWBD7`. Availability depends on Microsoft certification;
 creating the product or building its package does not mean it has been approved.
 
 The Store edition keeps IP monitoring, flags, history, optional notifications, refresh intervals

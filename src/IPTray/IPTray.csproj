@@ -22,9 +22,9 @@
     <Description>Tray monitor for your public IP address, country and DNS servers.</Description>
     <Company>IPTray</Company>
     <Copyright>Copyright (c) 2026 IPTray contributors</Copyright>
-    <Version>1.0.2</Version>
-    <FileVersion>1.0.2.0</FileVersion>
-    <AssemblyVersion>1.0.2.0</AssemblyVersion>
+    <Version>1.1.0</Version>
+    <FileVersion>1.1.0.0</FileVersion>
+    <AssemblyVersion>1.1.0.0</AssemblyVersion>
 
     <RuntimeIdentifier>win-x64</RuntimeIdentifier>
     <SelfContained>true</SelfContained>
@@ -51,8 +51,23 @@
     <EnableUnsafeBinaryFormatterSerialization>false</EnableUnsafeBinaryFormatterSerialization>
   </PropertyGroup>
 
+  <PropertyGroup Condition="'$(StoreBuild)' == 'true'">
+    <TargetFramework>net8.0-windows10.0.19041.0</TargetFramework>
+    <SupportedOSPlatformVersion>10.0.19041.0</SupportedOSPlatformVersion>
+    <DefineConstants>$(DefineConstants);STORE_BUILD</DefineConstants>
+  </PropertyGroup>
+
+  <ItemGroup Condition="'$(StoreBuild)' == 'true'">
+    <Compile Remove="Services\ElevatedHost.cs" />
+    <Compile Remove="Forms\DnsForm.cs" />
+  </ItemGroup>
+  <ItemGroup Condition="'$(StoreBuild)' != 'true'">
+    <Compile Remove="Forms\StoreDnsForm.cs" />
+  </ItemGroup>
+
   <ItemGroup>
     <EmbeddedResource Include="Resources\app.ico" />
+    <InternalsVisibleTo Include="IPTray.Checks" />
   </ItemGroup>
 
 </Project>

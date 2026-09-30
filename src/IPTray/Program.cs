@@ -9,6 +9,7 @@ internal static class Program
     [STAThread]
     private static int Main(string[] args)
     {
+#if !STORE_BUILD
         // Elevated helper mode. A second, UAC-elevated copy of this executable performs the
         // privileged DNS work for the user-level instance. This has to run before the
         // single-instance guard, because the normal instance is still running. Anything starting
@@ -18,6 +19,13 @@ internal static class Program
         {
             return ElevatedHost.Run(args);
         }
+#else
+        // The Store package contains no privileged helper, including through direct invocation.
+        if (args.Length > 0 && args[0] == "--apply-dns")
+        {
+            return 10;
+        }
+#endif
 
         using var singleInstance = new Mutex(true, @"Local\IPTray.SingleInstance.v1", out bool isFirstInstance);
         if (!isFirstInstance)
@@ -33,6 +41,8 @@ internal static class Program
         AppDomain.CurrentDomain.UnhandledException += (_, e) => CrashReporter.Report(e.ExceptionObject as Exception);
 
         ApplicationConfiguration.Initialize();
+
+        PrivacyNotice.EnsureChoice();
 
         using var context = new TrayContext();
         Application.Run(context);

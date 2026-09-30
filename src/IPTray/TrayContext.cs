@@ -21,10 +21,12 @@ internal sealed class TrayContext : ApplicationContext
     private readonly ToolStripLabel _ispLabel = new();
     private readonly ToolStripMenuItem _startupItem = new("Start with Windows");
     private readonly ToolStripMenuItem _notifyItem = new("Notify me when the IP changes");
+    private readonly ToolStripMenuItem _onlineItem = new("Allow online IP lookups");
     private readonly ToolStripMenuItem _intervalItem = new("Check every");
     private readonly System.Windows.Forms.Timer _refreshTimer = new();
     private readonly System.Windows.Forms.Timer _watchdog = new();
     private readonly CancellationTokenSource _shutdown = new();
+    private CancellationTokenSource? _lookupCancellation;
 
     private Font? _boldFont;
     private OwnedIcon? _icon;
@@ -48,6 +50,10 @@ internal sealed class TrayContext : ApplicationContext
         _tray.MouseUp += OnTrayMouseUp;
         SetIcon(FlagIconFactory.CreateTrayIcon(null, offline: false));
         _tray.Visible = true;
+        if (_settings.OnlineLookupsAllowed != true)
+        {
+            ShowLookupsDisabled();
+        }
 
         _refreshTimer.Interval = _settings.RefreshSeconds * 1000;
         _refreshTimer.Tick += (_, _) => BeginRefresh();
@@ -83,8 +89,18 @@ internal sealed class TrayContext : ApplicationContext
             _intervalItem.DropDownItems.Add(item);
         }
 
-        _startupItem.Checked = StartupManager.IsEnabled();
+        _menu.Opening += async (_, _) =>
+        {
+            _startupItem.Enabled = false;
+            bool enabled = await StartupManager.IsEnabledAsync();
+            if (_startupItem.IsDisposed) return;
+            _startupItem.Checked = enabled;
+            _startupItem.Enabled = true;
+        };
         _startupItem.Click += OnStartupClick;
+
+        _onlineItem.Checked = _settings.OnlineLookupsAllowed == true;
+        _onlineItem.Click += (_, _) => ToggleOnlineLookups();
 
         _notifyItem.Checked = _settings.NotifyOnChange;
         _notifyItem.Click += OnNotifyClick;
@@ -105,6 +121,8 @@ internal sealed class TrayContext : ApplicationContext
             _notifyItem,
             _intervalItem,
             new ToolStripSeparator(),
+            _onlineItem,
+            new ToolStripMenuItem("Privacy policy", null, (_, _) => PrivacyNotice.OpenPolicy()),
             new ToolStripMenuItem("About IPTray", null, (_, _) => ShowAbout()),
             new ToolStripMenuItem("Exit", null, (_, _) => ExitApplication()),
         });
@@ -155,26 +173,28 @@ internal sealed class TrayContext : ApplicationContext
 
     private async Task RefreshAsync()
     {
-        if (_refreshing || _shutdown.IsCancellationRequested)
+        if (_settings.OnlineLookupsAllowed != true || _refreshing || _shutdown.IsCancellationRequested)
         {
             return;
         }
 
         _refreshing = true;
+        using var lookup = CancellationTokenSource.CreateLinkedTokenSource(_shutdown.Token);
+        _lookupCancellation = lookup;
         try
         {
-            IpInfo? info = await IpLookupService.LookupAsync(_shutdown.Token).ConfigureAwait(true);
-            if (_shutdown.IsCancellationRequested)
+            IpInfo? info = await IpLookupService.LookupAsync(lookup.Token).ConfigureAwait(true);
+            if (lookup.IsCancellationRequested)
             {
                 return;
             }
 
             if (info is not null && info.HasCountry && info.CountryCode != _flagCountry)
             {
-                Bitmap? flag = await FlagIconFactory.GetFlagAsync(info.CountryCode, _shutdown.Token)
+                Bitmap? flag = await FlagIconFactory.GetFlagAsync(info.CountryCode, lookup.Token)
                     .ConfigureAwait(true);
 
-                if (_shutdown.IsCancellationRequested)
+                if (lookup.IsCancellationRequested)
                 {
                     flag?.Dispose();
                     return;
@@ -206,8 +226,44 @@ internal sealed class TrayContext : ApplicationContext
         }
         finally
         {
+            _lookupCancellation = null;
             _refreshing = false;
+            if (_settings.OnlineLookupsAllowed == true && lookup.IsCancellationRequested &&
+                !_shutdown.IsCancellationRequested)
+            {
+                BeginRefresh();
+            }
         }
+    }
+
+    private void ToggleOnlineLookups()
+    {
+        _settings.OnlineLookupsAllowed = _settings.OnlineLookupsAllowed != true;
+        _onlineItem.Checked = _settings.OnlineLookupsAllowed == true;
+        _settings.Save();
+        if (_onlineItem.Checked)
+        {
+            BeginRefresh();
+        }
+        else
+        {
+            _lookupCancellation?.Cancel();
+            ShowLookupsDisabled();
+        }
+    }
+
+    private void ShowLookupsDisabled()
+    {
+        _current = null;
+        _addressLabel.Text = "Online lookups disabled";
+        _countryLabel.Text = "Enable Allow online IP lookups in this menu to start monitoring.";
+        _countryLabel.Visible = true;
+        _ispLabel.Visible = false;
+        _addressLabel.Image = null;
+        _headerImage?.Dispose();
+        _headerImage = null;
+        _tray.Text = "IPTray - online lookups disabled";
+        SetIcon(FlagIconFactory.CreateTrayIcon(null, offline: false));
     }
 
     private void Apply(IpInfo? info)
@@ -356,18 +412,22 @@ internal sealed class TrayContext : ApplicationContext
         _refreshTimer.Start();
     }
 
-    private void OnStartupClick(object? sender, EventArgs e)
+    private async void OnStartupClick(object? sender, EventArgs e)
     {
         bool wanted = !_startupItem.Checked;
 
-        if (StartupManager.SetEnabled(wanted))
+        _startupItem.Enabled = false;
+        bool updated = await StartupManager.SetEnabledAsync(wanted);
+        _startupItem.Enabled = true;
+        if (updated)
         {
             _startupItem.Checked = wanted;
         }
         else
         {
             MessageBox.Show(
-                "The start-up entry could not be updated.",
+                "The start-up entry could not be updated. If Windows disabled startup for IPTray, " +
+                "enable it in Settings > Apps > Startup.",
                 Program.AppName, MessageBoxButtons.OK, MessageBoxIcon.Warning);
         }
     }

@@ -96,6 +96,7 @@ internal static class DnsService
             .ToList();
     }
 
+#if !STORE_BUILD
     /// <summary>
     /// Applies a DNS change through a UAC-elevated copy of this executable. Returns false and an
     /// explanation when elevation was declined or the change did not go through.
@@ -174,6 +175,7 @@ internal static class DnsService
     };
 
     private static string Quote(string value) => '"' + value + '"';
+#endif
 
     /// <summary>True when Windows, not the user, supplies the DNS servers for this adapter.</summary>
     private static bool IsAutomatic(string adapterId)

@@ -11,6 +11,8 @@ internal sealed class AppSettings
 
     public bool NotifyOnChange { get; set; } = true;
 
+    public bool? OnlineLookupsAllowed { get; set; }
+
     public static AppSettings Load()
     {
         var settings = new AppSettings();

@@ -1,8 +1,15 @@
 # Security
 
+## Store edition
+
+The Microsoft Store build excludes `ElevatedHost` and `DnsService.Apply` from the compiled
+assembly. DNS changes are made by users in Windows Settings. Only the GitHub desktop build
+uses the elevated helper described below. The Store manifest requests `runFullTrust` for the
+WinForms tray application; it does not request `allowElevation`.
+
 ## Trust boundary
 
-IPTray runs as a normal, unelevated user process. It crosses a privilege boundary in exactly one
+IPTray runs as a normal, unelevated user process. The GitHub desktop edition crosses a privilege boundary in exactly one
 place: changing DNS servers requires administrator rights, so the app launches a second, elevated
 copy of itself (`IPTray.exe --apply-dns ...`) behind a UAC prompt. Everything else — looking up the
 public IP, downloading flags, reading DNS configuration, writing the log — happens without

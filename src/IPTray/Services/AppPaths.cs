@@ -3,8 +3,13 @@ namespace IPTray.Services;
 /// <summary>Locations IPTray writes to. All under %APPDATA%\IPTray so an uninstall can drop them.</summary>
 internal static class AppPaths
 {
+#if STORE_BUILD
+    public static string DataDirectory { get; } = EnsureDirectory(
+        Windows.Storage.ApplicationData.Current.LocalFolder.Path);
+#else
     public static string DataDirectory { get; } = EnsureDirectory(Path.Combine(
         Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), Program.AppName));
+#endif
 
     public static string FlagCacheDirectory => EnsureDirectory(Path.Combine(DataDirectory, "flags"));
 

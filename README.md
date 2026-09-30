@@ -25,6 +25,8 @@
 - **Sensible refreshing.** Checks every 30 seconds to 15 minutes, your choice, and re-checks a few
   seconds after Windows reports a network change.
 - Optional balloon notification on change, optional start with Windows, no account, no telemetry.
+- Online lookups are opt-in on first use and can be turned off in the tray menu. See the
+  [privacy policy](PRIVACY.md) for the services contacted and local data handling.
 
 <p align="center">
   <img src="docs/window-logs.png" width="49%" alt="IP history window">
@@ -33,7 +35,7 @@
 
 ## Install
 
-Download `IPTray-1.0.2-setup.exe` from the
+Download `IPTray-1.1.0-setup.exe` from the
 [latest release](https://github.com/memues/IPTray/releases/latest) and run it.
 
 The installer offers a per-user install (no administrator rights needed) or an all-users install.
@@ -43,6 +45,25 @@ tamper-resistance of a self-elevating app, prefer the all-users install — see
 
 To remove it, use **Settings → Apps → Installed apps → IPTray**, or *Programs and Features*.
 The uninstaller asks whether the settings and the IP history should be deleted too.
+
+The release also includes `IPTray-1.1.0-win-x64-portable.zip`: extract the entire archive and run
+`IPTray.exe`. Keep the bundled runtime files alongside the executable; no separate .NET install
+is needed. The portable edition uses the same per-user data folder as the installer edition.
+
+## Microsoft Store edition
+
+The Microsoft Store product is named **IPTray by memues** because the shorter name was
+unavailable. Its Store ID is `9MSXJD9BWBD7`. Availability depends on Microsoft certification;
+creating the product or building its package does not mean it has been approved.
+
+The Store edition keeps IP monitoring, flags, history, optional notifications, refresh intervals
+and optional startup. It displays DNS configuration and opens Windows network settings for
+DNS edits. It contains no elevated helper and does not apply DNS changes itself. Direct DNS
+switching remains available in the GitHub installer and portable editions.
+
+Store data is isolated in the package's local application data folder, displayed by **About
+IPTray**. Store startup uses a Windows startup task instead of a Run registry entry. Install
+only one edition for everyday use; the editions share the single-instance guard.
 
 > [!NOTE]
 > **Smart App Control blocks unsigned programs.** IPTray is not code-signed, so on a Windows 11
@@ -54,7 +75,7 @@ The uninstaller asks whether the settings and the IP history should be deleted t
 
 ## Where things are stored
 
-Everything lives under `%APPDATA%\IPTray`:
+In the GitHub edition, everything lives under `%APPDATA%\IPTray`:
 
 | File | Contents |
 | --- | --- |
@@ -75,7 +96,7 @@ from the .NET region database, so they read the same whichever provider answered
 
 ## Changing DNS servers
 
-IPTray itself runs without administrator rights. Applying a DNS change needs them, so the app
+In the GitHub edition, IPTray itself runs without administrator rights. Applying a DNS change needs them, so the app
 launches one elevated copy of itself that runs the `netsh interface ipv4 set dnsservers` commands
 and reports the result back. You will see a single UAC prompt per change, and nothing happens if
 you decline it. Reading the current configuration never needs elevation.
@@ -99,6 +120,29 @@ This publishes a self-contained win-x64 build into `build\publish` and compiles 
 
 ```cmd
 dotnet run --project src\IPTray\IPTray.csproj
+```
+
+For the Store package, install the Windows SDK (MakeAppx) and use the values in
+[`packaging/store-identity.json`](packaging/store-identity.json):
+
+```powershell
+$identity = Get-Content packaging/store-identity.json -Raw | ConvertFrom-Json
+.\build-store.ps1 -IdentityName $identity.IdentityName -Publisher $identity.Publisher -PublisherDisplayName $identity.PublisherDisplayName -DisplayName $identity.DisplayName
+```
+
+Pass `-MakeAppxPath` if the tool is installed outside the Windows SDK directory. The script
+publishes a separate Store build, validates the manifest, creates fresh staging files and
+outputs `build/store/IPTray-1.1.0-x64.msix`. Submit this unsigned MSIX to Partner Center;
+Microsoft signs accepted Store packages. It is not a directly installable GitHub download.
+Use the EXE installer or portable ZIP for GitHub distribution.
+
+Distribution and privacy regression checks (no DNS changes or elevation):
+
+```powershell
+dotnet build tests/IPTray.Checks -c Release
+dotnet tests/IPTray.Checks/bin/Release/net8.0-windows10.0.19041.0/win-x64/IPTray.Checks.dll
+dotnet build tests/IPTray.Checks -c Release -p:StoreBuild=true
+dotnet tests/IPTray.Checks/bin/Release/net8.0-windows10.0.19041.0/win-x64/IPTray.Checks.dll
 ```
 
 ## Licence

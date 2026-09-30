@@ -7,12 +7,20 @@ internal static class StartupManager
 {
     private const string RunKeyPath = @"Software\Microsoft\Windows\CurrentVersion\Run";
 
-    public static bool IsEnabled()
+    public static async Task<bool> IsEnabledAsync()
     {
         try
         {
+#if STORE_BUILD
+            Windows.ApplicationModel.StartupTask task = await Windows.ApplicationModel.StartupTask
+                .GetAsync("IPTrayStartup");
+            return task.State is Windows.ApplicationModel.StartupTaskState.Enabled or
+                Windows.ApplicationModel.StartupTaskState.EnabledByPolicy;
+#else
+            await Task.CompletedTask;
             using RegistryKey? key = Registry.CurrentUser.OpenSubKey(RunKeyPath);
             return key?.GetValue(Program.AppName) is string value && value.Length > 0;
+#endif
         }
         catch (Exception ex)
         {
@@ -22,10 +30,24 @@ internal static class StartupManager
     }
 
     /// <summary>Returns false when the registry could not be updated.</summary>
-    public static bool SetEnabled(bool enabled)
+    public static async Task<bool> SetEnabledAsync(bool enabled)
     {
         try
         {
+#if STORE_BUILD
+            Windows.ApplicationModel.StartupTask task = await Windows.ApplicationModel.StartupTask
+                .GetAsync("IPTrayStartup");
+            if (enabled)
+            {
+                Windows.ApplicationModel.StartupTaskState state = await task.RequestEnableAsync();
+                return state is Windows.ApplicationModel.StartupTaskState.Enabled or
+                    Windows.ApplicationModel.StartupTaskState.EnabledByPolicy;
+            }
+            task.Disable();
+            return task.State is not (Windows.ApplicationModel.StartupTaskState.Enabled or
+                Windows.ApplicationModel.StartupTaskState.EnabledByPolicy);
+#else
+            await Task.CompletedTask;
             using RegistryKey key = Registry.CurrentUser.CreateSubKey(RunKeyPath, writable: true);
 
             if (enabled)
@@ -39,6 +61,7 @@ internal static class StartupManager
             }
 
             return true;
+#endif
         }
         catch (Exception ex)
         {

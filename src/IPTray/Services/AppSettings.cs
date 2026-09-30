@@ -11,7 +11,7 @@ internal sealed class AppSettings
 
     public bool NotifyOnChange { get; set; } = true;
 
-    public bool? OnlineLookupsAllowed { get; set; }
+    public bool? OnlineLookupsAllowed { get; set; } = true;
 
     public static AppSettings Load()
     {
@@ -22,7 +22,7 @@ internal sealed class AppSettings
             if (File.Exists(AppPaths.SettingsFile))
             {
                 string json = File.ReadAllText(AppPaths.SettingsFile);
-                settings = JsonSerializer.Deserialize<AppSettings>(json) ?? new AppSettings();
+                settings = FromJson(json);
             }
         }
         catch (Exception ex)
@@ -31,6 +31,16 @@ internal sealed class AppSettings
             settings = new AppSettings();
         }
 
+        return Normalize(settings);
+    }
+
+    internal static AppSettings FromJson(string json) =>
+        Normalize(JsonSerializer.Deserialize<AppSettings>(json) ?? new AppSettings());
+
+    private static AppSettings Normalize(AppSettings settings)
+    {
+        // Older releases may omit this setting or store null. Keep an explicit opt-out.
+        settings.OnlineLookupsAllowed ??= true;
         if (!AllowedIntervals.Contains(settings.RefreshSeconds))
         {
             settings.RefreshSeconds = 60;

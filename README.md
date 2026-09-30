@@ -25,7 +25,7 @@
 - **Sensible refreshing.** Checks every 30 seconds to 15 minutes, your choice, and re-checks a few
   seconds after Windows reports a network change.
 - Optional balloon notification on change, optional start with Windows, no account, no telemetry.
-- Online lookups are opt-in on first use and can be turned off in the tray menu. See the
+- Online lookups start automatically and can be turned off in the tray menu. See the
   [privacy policy](PRIVACY.md) for the services contacted and local data handling.
 
 <p align="center">
@@ -35,7 +35,7 @@
 
 ## Install
 
-Download `IPTray-1.1.0-setup.exe` from the
+Download `IPTray-1.1.1-setup.exe` from the
 [latest release](https://github.com/memues/IPTray/releases/latest) and run it.
 
 The installer offers a per-user install (no administrator rights needed) or an all-users install.
@@ -46,7 +46,7 @@ tamper-resistance of a self-elevating app, prefer the all-users install — see
 To remove it, use **Settings → Apps → Installed apps → IPTray**, or *Programs and Features*.
 The uninstaller asks whether the settings and the IP history should be deleted too.
 
-The release also includes `IPTray-1.1.0-win-x64-portable.zip`: extract the entire archive and run
+The release also includes `IPTray-1.1.1-win-x64-portable.zip`: extract the entire archive and run
 `IPTray.exe`. Keep the bundled runtime files alongside the executable; no separate .NET install
 is needed. The portable edition uses the same per-user data folder as the installer edition.
 
@@ -80,7 +80,7 @@ In the GitHub edition, everything lives under `%APPDATA%\IPTray`:
 | File | Contents |
 | --- | --- |
 | `ip-log.csv` | The IP history, UTF-8 CSV, newest row last |
-| `settings.json` | Check interval and the notification preference |
+| `settings.json` | Check interval, notification and online lookup preferences |
 | `flags\` | Cached flag images |
 | `error.log` | Only written if something goes wrong |
 
@@ -132,7 +132,7 @@ $identity = Get-Content packaging/store-identity.json -Raw | ConvertFrom-Json
 
 Pass `-MakeAppxPath` if the tool is installed outside the Windows SDK directory. The script
 publishes a separate Store build, validates the manifest, creates fresh staging files and
-outputs `build/store/IPTray-1.1.1.0-x64.msix`. The Store package version can advance
+outputs `build/store/IPTray-1.1.2.0-x64.msix`. The Store package version can advance
 independently of the desktop release when package metadata changes. Submit this unsigned MSIX to Partner Center;
 Microsoft signs accepted Store packages. It is not a directly installable GitHub download.
 Use the EXE installer or portable ZIP for GitHub distribution.

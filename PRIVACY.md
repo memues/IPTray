@@ -6,7 +6,7 @@ IPTray is an open-source desktop utility maintained at [memues/IPTray](https://g
 
 ## Online lookups and third parties
 
-Before the first lookup, IPTray asks whether you allow online lookups. If you decline, no IP lookup or flag download is made. DNS viewing and existing local history remain available. Change this choice at any time with **Allow online IP lookups** in the tray menu; turning it off cancels current lookup requests and stops further requests. Data already received by a service cannot be recalled.
+Starting with IPTray 1.1.1, online IP and country lookups start automatically when the app launches, without a first-use dialog. Existing explicit offline preferences are preserved. Turn lookups off at any time with **Allow online IP lookups** in the tray menu; turning it off cancels current lookup requests and stops further requests. DNS viewing and existing local history remain available offline. Data already received by a service cannot be recalled. IPTray 1.1.0 asks for a choice before its first lookup.
 
 When enabled, IPTray uses HTTPS to contact these services, trying alternatives when necessary:
 

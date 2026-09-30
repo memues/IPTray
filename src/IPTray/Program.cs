@@ -42,8 +42,6 @@ internal static class Program
 
         ApplicationConfiguration.Initialize();
 
-        PrivacyNotice.EnsureChoice();
-
         using var context = new TrayContext();
         Application.Run(context);
         return 0;

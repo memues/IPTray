@@ -11,11 +11,21 @@ static class Checks
         try
         {
             var settings = new AppSettings();
-            Require(settings.OnlineLookupsAllowed is null, "Fresh installs must ask before connecting.");
+            Require(settings.OnlineLookupsAllowed == true, "Fresh installs must start online without a prompt.");
+            foreach (string legacy in new[] { "{\"RefreshSeconds\":300,\"NotifyOnChange\":false}",
+                "{\"RefreshSeconds\":300,\"NotifyOnChange\":false,\"OnlineLookupsAllowed\":null}" })
+            {
+                AppSettings migrated = AppSettings.FromJson(legacy);
+                Require(migrated.OnlineLookupsAllowed == true, "Legacy settings must start online.");
+                Require(migrated.RefreshSeconds == 300 && !migrated.NotifyOnChange,
+                    "Migrating online defaults must preserve existing preferences.");
+            }
+            Require(AppSettings.FromJson("{\"OnlineLookupsAllowed\":false}").OnlineLookupsAllowed == false,
+                "An existing explicit opt-out must stay disabled.");
             foreach (bool allowed in new[] { true, false })
             {
                 settings.OnlineLookupsAllowed = allowed;
-                Require(JsonSerializer.Deserialize<AppSettings>(JsonSerializer.Serialize(settings))!
+                Require(AppSettings.FromJson(JsonSerializer.Serialize(settings))
                     .OnlineLookupsAllowed == allowed, "Privacy choice must survive a settings round trip.");
             }
 

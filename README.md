@@ -132,7 +132,8 @@ $identity = Get-Content packaging/store-identity.json -Raw | ConvertFrom-Json
 
 Pass `-MakeAppxPath` if the tool is installed outside the Windows SDK directory. The script
 publishes a separate Store build, validates the manifest, creates fresh staging files and
-outputs `build/store/IPTray-1.1.0-x64.msix`. Submit this unsigned MSIX to Partner Center;
+outputs `build/store/IPTray-1.1.1.0-x64.msix`. The Store package version can advance
+independently of the desktop release when package metadata changes. Submit this unsigned MSIX to Partner Center;
 Microsoft signs accepted Store packages. It is not a directly installable GitHub download.
 Use the EXE installer or portable ZIP for GitHub distribution.
 

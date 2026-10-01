@@ -19,6 +19,55 @@ The interesting attacker in this model is **another process already running as t
 It cannot read the elevated process's memory, but it can write to every per-user location IPTray
 touches, so nothing in those locations may be trusted by the privileged half.
 
+## Fixed in 1.1.2
+
+- **Formula and cell injection through history copying.** Reading the CSV intentionally restores
+  the original ISP/country text for display. The history window previously copied that restored
+  text straight into tab-separated clipboard data, allowing a provider value such as `=1+1` to
+  become a spreadsheet formula, or an embedded tab to create another cell. Copying now protects
+  formula-like prefixes and replaces embedded tabs/newlines with spaces. Ordinary history rows
+  retain the same text and columns. CSV writing also protects fullwidth formula prefixes used by
+  some spreadsheet locales. Existing history files are not rewritten.
+- **Unbounded decoded flag dimensions and cached file reads.** A PNG smaller than the existing
+  2 MB HTTP limit could still expand into a large native bitmap. Flag loading now checks the PNG
+  signature and IHDR dimensions before native decoding, with a generous 256-by-256 maximum for
+  the 80-pixel and 64-pixel providers. Cache reads are bounded to 2 MB as well. Invalid/oversized
+  flags follow the existing provider fallback/globe behavior. Failed bitmap copies are disposed.
+
+These changes do not alter lookup providers, refresh intervals, DNS presets, startup behavior or
+the DNS elevation protocol. Spreadsheet escaping is for the initial export/paste; spreadsheet
+applications can change escaping when users edit, save and reopen exported data.
+
+### Review and regression evidence (2026-10-01)
+
+The two main regressions were reproduced before fixing them: an unguarded `=1+1` clipboard cell,
+and successful decoding of a valid 1024-by-1024 PNG whose compressed size was below 2 MB. Tests
+use generated images and in-memory row formatting; they do not overwrite the user's clipboard,
+change DNS, request elevation, contact lookup providers, or modify the user's history/settings.
+
+The desktop and Store builds both pass `IPTray.Checks` in Release mode. Coverage includes normal
+history output, dangerous prefixes, injected rows/columns, CSV value round trips, ordinary flags,
+dimension/byte limits, malformed headers, non-PNG input and bounded temporary cache files. Desktop
+checks also reject malformed primary/secondary DNS addresses and adapter tokens independently at
+the caller and helper boundaries. The Store checks verify that DNS mutation and the elevated
+helper remain absent. NuGet's transitive vulnerability audit reported no vulnerable package
+dependencies; the desktop project has no explicit third-party PackageReference dependencies.
+This audit does not prove the bundled .NET runtime or Windows image decoder is vulnerability-free.
+
+GitHub CodeQL's `security-extended` scan with `remote_and_local` threat models reported six alerts
+against the pre-fix source. Their SARIF dataflow was reviewed without dismissing any alert:
+
+| Alert | Location | Assessment |
+| --- | --- | --- |
+| 1 | `AppPaths.EnsureDirectory` | The source is the current user's application-data directory. Directory creation runs at the same privilege as the normal tray process and is the intended per-user storage location. The elevated DNS entry point returns before any `AppPaths` access. No privilege-crossing path from this alert was established. |
+| 2, 3, 5 | `ElevatedHost.RunTool` | The flagged source is `Environment.GetFolderPath(SpecialFolder.System)`, used only for a fixed `netsh.exe`/`ipconfig.exe` path and the working directory. No request-supplied executable path is accepted; shell execution is disabled and arguments use `ArgumentList`. This relies on the integrity of the Windows system directory. |
+| 4 | `DnsService.Apply` working directory | The flagged value is the same Windows system-directory lookup, not a user-supplied command or DNS textbox value. |
+| 6 | `DnsService.Apply` arguments | Primary/secondary text reaches the command line only after canonical dotted-quad IPv4 validation. Adapter IDs are restricted tokens, mode/flush tokens are fixed, and the privileged helper independently validates all arguments. Added rejection tests cover quotes, newlines, NUL, shell syntax, alternate IPv4 notation and inconsistent modes. |
+
+The previously documented per-user executable tampering, runtime profiling environment and
+unsigned-binary risks remain. Live DNS/UAC changes and installation/uninstallation were not
+exercised during these regressions. A passing scan/test suite is not a guarantee of complete safety.
+
 ## Fixed in 1.0.1
 
 | | Issue | Fix |

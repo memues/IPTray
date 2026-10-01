@@ -1,3 +1,4 @@
+using System.Buffers.Binary;
 using System.Drawing;
 using System.Drawing.Drawing2D;
 using System.Drawing.Imaging;
@@ -11,6 +12,9 @@ namespace IPTray.Services;
 /// </summary>
 internal static class FlagIconFactory
 {
+    private const int MaxFlagBytes = 2 * 1024 * 1024;
+    private const int MaxFlagDimension = 256;
+
     private static readonly string[] SourceTemplates =
     {
         "https://flagcdn.com/w80/{0}.png",
@@ -49,7 +53,7 @@ internal static class FlagIconFactory
         {
             if (File.Exists(cacheFile))
             {
-                Bitmap? cached = Decode(await File.ReadAllBytesAsync(cacheFile, cancellationToken).ConfigureAwait(false));
+                Bitmap? cached = await ReadCachedFlagAsync(cacheFile, cancellationToken).ConfigureAwait(false);
                 if (cached is not null)
                 {
                     return cached;
@@ -108,6 +112,23 @@ internal static class FlagIconFactory
         }
 
         return null;
+    }
+
+    internal static async Task<Bitmap?> ReadCachedFlagAsync(string path, CancellationToken cancellationToken)
+    {
+        // Check the opened file, then read only that many bytes. A growing/replaced cache file
+        // must not bypass the same encoded-byte limit used for network responses.
+        await using var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read,
+            bufferSize: 4096, useAsync: true);
+        long length = stream.Length;
+        if (length is < 33 or > MaxFlagBytes)
+        {
+            return null;
+        }
+
+        byte[] bytes = new byte[(int)length];
+        await stream.ReadExactlyAsync(bytes, cancellationToken).ConfigureAwait(false);
+        return Decode(bytes);
     }
 
     /// <summary>
@@ -188,18 +209,34 @@ internal static class FlagIconFactory
 
     private static Bitmap? Decode(byte[] bytes)
     {
-        if (bytes.Length == 0)
+        // Both providers serve PNG. Bound its IHDR dimensions before the native decoder sees
+        // it: a tiny compressed response can otherwise expand into a very large bitmap.
+        if (bytes.Length is < 33 or > MaxFlagBytes ||
+            !bytes.AsSpan(0, 8).SequenceEqual(new byte[] { 137, 80, 78, 71, 13, 10, 26, 10 }) ||
+            !bytes.AsSpan(8, 8).SequenceEqual("\0\0\0\rIHDR"u8))
         {
             return null;
         }
 
+        uint width = BinaryPrimitives.ReadUInt32BigEndian(bytes.AsSpan(16, 4));
+        uint height = BinaryPrimitives.ReadUInt32BigEndian(bytes.AsSpan(20, 4));
+        if (width is 0 or > MaxFlagDimension || height is 0 or > MaxFlagDimension)
+        {
+            return null;
+        }
+
+        Bitmap? copy = null;
         try
         {
             using var stream = new MemoryStream(bytes, writable: false);
             using var source = new Bitmap(stream);
+            if (source.Width != width || source.Height != height)
+            {
+                return null;
+            }
 
             // Copy out of the stream-backed bitmap so the buffer can be released.
-            var copy = new Bitmap(source.Width, source.Height, PixelFormat.Format32bppArgb);
+            copy = new Bitmap(source.Width, source.Height, PixelFormat.Format32bppArgb);
             using (var g = Graphics.FromImage(copy))
             {
                 g.Clear(Color.Transparent);
@@ -210,6 +247,7 @@ internal static class FlagIconFactory
         }
         catch (Exception)
         {
+            copy?.Dispose();
             return null;   // Not an image, or a truncated download.
         }
     }

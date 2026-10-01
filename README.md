@@ -35,7 +35,7 @@
 
 ## Install
 
-Download `IPTray-1.1.1-setup.exe` from the
+Download `IPTray-1.1.2-setup.exe` from the
 [latest release](https://github.com/memues/IPTray/releases/latest) and run it.
 
 The installer offers a per-user install (no administrator rights needed) or an all-users install.
@@ -46,7 +46,7 @@ tamper-resistance of a self-elevating app, prefer the all-users install — see
 To remove it, use **Settings → Apps → Installed apps → IPTray**, or *Programs and Features*.
 The uninstaller asks whether the settings and the IP history should be deleted too.
 
-The release also includes `IPTray-1.1.1-win-x64-portable.zip`: extract the entire archive and run
+The release also includes `IPTray-1.1.2-win-x64-portable.zip`: extract the entire archive and run
 `IPTray.exe`. Keep the bundled runtime files alongside the executable; no separate .NET install
 is needed. The portable edition uses the same per-user data folder as the installer edition.
 

@@ -173,13 +173,8 @@ internal sealed class LogsForm : Form
             ? _list.SelectedItems.Cast<ListViewItem>()
             : _list.Items.Cast<ListViewItem>();
 
-        var sb = new StringBuilder();
-        foreach (ListViewItem item in items)
-        {
-            sb.AppendLine(string.Join('\t', item.SubItems.Cast<ListViewItem.ListViewSubItem>().Select(s => s.Text)));
-        }
-
-        if (sb.Length == 0)
+        string text = BuildClipboardText(items);
+        if (text.Length == 0)
         {
             _status.Text = "Nothing to copy.";
             return;
@@ -187,7 +182,7 @@ internal sealed class LogsForm : Form
 
         try
         {
-            Clipboard.SetText(sb.ToString());
+            Clipboard.SetText(text);
             _status.Text = "Copied to the clipboard.";
         }
         catch (Exception ex)
@@ -195,6 +190,33 @@ internal sealed class LogsForm : Form
             CrashReporter.Write(ex);
             _status.Text = "The clipboard is not available right now.";
         }
+    }
+
+    internal static string BuildClipboardText(IEnumerable<ListViewItem> items)
+    {
+        var sb = new StringBuilder();
+        foreach (ListViewItem item in items)
+        {
+            sb.AppendLine(string.Join('\t', item.SubItems.Cast<ListViewItem.ListViewSubItem>()
+                .Select(s => EscapeClipboardCell(s.Text))));
+        }
+
+        return sb.ToString();
+    }
+
+    private static string EscapeClipboardCell(string value)
+    {
+        // Log reads restore the original provider text after removing the CSV formula guard.
+        // Reapply protection when exporting to TSV, and keep metadata inside its own cell.
+        value = value.Replace('\t', ' ').Replace('\r', ' ').Replace('\n', ' ');
+        ReadOnlySpan<char> content = value.AsSpan().TrimStart();
+        if (!content.IsEmpty && content[0] is '=' or '+' or '-' or '@' or '\'' or '"' or
+                '\uFF1D' or '\uFF0B' or '\uFF0D' or '\uFF20')
+        {
+            value = "'" + value;
+        }
+
+        return value;
     }
 
     private void OpenDataFolder()

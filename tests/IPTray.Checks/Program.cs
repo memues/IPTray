@@ -44,10 +44,28 @@ static class Checks
                 "Reject command injection before launching tools.");
             Require(!DnsService.Apply(new DnsRequest { AdapterId = "invalid\"" }, out _),
                 "Reject malformed requests before requesting elevation.");
+            const string exampleAdapterId = "{00000000-0000-0000-0000-000000000000}";
+            foreach (string invalid in new[] { "1.2.3.4\" & calc", "1.2.3.4\n", "1.2.3.4\0suffix",
+                "127.1", "0x7f000001", "2130706433", "01.2.3.4", "::1", "-f" })
+            {
+                Require(!DnsService.Apply(new DnsRequest { AdapterId = exampleAdapterId, Primary = invalid }, out _) &&
+                    !DnsService.Apply(new DnsRequest { AdapterId = exampleAdapterId,
+                        Primary = "1.1.1.1", Secondary = invalid }, out _),
+                    "Reject invalid DNS addresses before UAC, including either text field.");
+                Require(ElevatedHost.Run(new[] { "--apply-dns", exampleAdapterId, invalid, "none", "noflush" }) == 10 &&
+                    ElevatedHost.Run(new[] { "--apply-dns", exampleAdapterId, "1.1.1.1", invalid, "noflush" }) == 10,
+                    "The helper must independently reject invalid addresses before resolving an adapter.");
+            }
+            foreach (string invalid in new[] { "..\\adapter", "adapter name", "adapter\"", "adapter\n", "a&b", "a;b" })
+                Require(!ElevatedHost.IsSafeAdapterId(invalid), "Reject unsafe adapter tokens.");
+            Require(ElevatedHost.Run(new[] { "--apply-dns", exampleAdapterId, "auto", "1.1.1.1", "noflush" }) == 10 &&
+                ElevatedHost.Run(new[] { "--apply-dns", exampleAdapterId, "1.1.1.1", "none", "unexpected" }) == 10,
+                "Reject inconsistent DNS modes and unsupported flush tokens before launching tools.");
 #endif
             // These are real adapter reads, never edits. Do not print network information.
             _ = DnsService.GetAdapters();
             Console.WriteLine("Privacy persistence, distribution boundaries and DNS read checks passed.");
+            SecurityChecks.Run();
 
             if (args.Length > 0 && args[0] == "--preview-dns")
             {

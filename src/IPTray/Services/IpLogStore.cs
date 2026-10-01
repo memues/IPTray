@@ -135,7 +135,8 @@ internal static class IpLogStore
     /// The ISP and country strings come from a remote service, so they are untrusted input that
     /// the user is invited to open in a spreadsheet.
     /// </summary>
-    private static readonly char[] FormulaLeaders = { '=', '+', '-', '@', '\t', '\r' };
+    private static readonly char[] FormulaLeaders =
+        { '=', '+', '-', '@', '\t', '\r', '\uFF1D', '\uFF0B', '\uFF0D', '\uFF20' };
 
     /// <summary>
     /// The apostrophe itself is escaped as well. Without that, a genuine value of <c>'=x</c> and
